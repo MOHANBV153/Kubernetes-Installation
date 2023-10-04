@@ -1,0 +1,102 @@
+Minikube Cluster Installation
+
+Step 1: Launch an instance using the below resources 
+Ubuntu Server: 22.04 LTS (HVM), SSD Volume TypeFree tier eligible
+Instance type:  t3.medium
+Configure storage:  30 GiB
+
+Step 2: Connect the instance once login Docker-install in ubuntu using the below shell script.
+#!/bin/bash
+echo << EOF
+"=========================================================="
+"||     Set up Docker's Apt repository ...............   ||"
+"=========================================================="
+EOF
+#Set up Docker's Apt repository
+# Add Docker's official GPG key:
+sudo apt-get update -y
+sudo apt-get install ca-certificates curl gnupg -y
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update -y
+
+echo << EOF
+"=========================================================="
+"||   Docker's Apt repository is completed...........    ||"
+"=========================================================="
+EOF
+
+
+
+echo << EOF
+"=========================================================="
+"||   Install the Docker packages....................    ||"
+"=========================================================="
+EOF
+
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+
+echo << EOF
+"=========================================================="
+"||   Install is completed ....................    ||"
+"=========================================================="
+EOF
+
+dockerStatus=$(systemctl status docker | awk '/Active/ {print $3}' | tr -d "[()]")
+dockerVersion=$(docker -v | awk '/version/ {print $3}' | tr -d ",")
+
+echo "The Docker status is $dockerStatus"
+echo "The Docker version is $dockerVersion"
+
+
+Step 3: Virtualbox installation
+#!/bin/bash 
+sudo apt-get update -y
+#To install conntrack on Ubuntu, & The command will download the package lists for Ubuntu 12.04 LTS on your system and update the list of newest versions of packages and their dependencies on your system.
+sudo apt-get install conntrack -y
+#curl: Curl is a command-line tool for transferring data with URLs. It is commonly used to download. files from the internet or make HTTP requests. apt-transport-https: This package is necessary to enable the use of the HTTPS transport method for the apt package manager. It allows apt to download packages from remote repositories over HTTPS, ensuring secure communication.
+sudo apt-get install curl apt-transport-https wget -y
+# install virtualbox & This package is the VirtualBox Extension Pack, which enhances VirtualBox's functionality by adding additional features and support.
+sudo apt-get install virtualbox virtualbox-ext-pack -y
+
+
+Step 4: Minikube installation
+#!/bin/bash 
+#To install the latest minikube stable release on x86-64 Linux using binary download:
+# Operating system: Linux Architecture: x86-64 Release type: stable Installer type: Binary Download
+
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube 
+sudo chmod 755 /usr/local/bin/minikube 
+minikube version
+
+Step 5: kubectl installation
+#!/bin/bash 
+echo "Update the apt package index and install packages needed to use the Kubernetes apt repository:"
+sudo apt-get update -y
+# apt-transport-https may be a dummy package; if so, you can skip that package
+sudo apt-get install -y apt-transport-https ca-certificates curl
+
+echo -e "Download the public signing key for the Kubernetes package repositories.\nThe same signing key is used for all repositories so you can disregard the version in the URL:"
+
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg 
+
+# This overwrites any existing configuration in /etc/apt/sources.list.d/kubernetes.list
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt-get update -y
+sudo apt-get install -y kubectl
+
+Step 6: change ubuntu permission to docker also since we cannot assign to docker group to root use ubuntu user and exit from root
+ubuntu@ip-172-31-35-20:~$ sudo usermod -aG docker $USER && newgrp docker
+
+Step 7: Minikube will create and manage the cluster using Docker containers.
+minikube start --driver=docker
+minikube start
